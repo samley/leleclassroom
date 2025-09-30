@@ -1,0 +1,598 @@
+// 汉字学习系统 - 主应用程序
+class HanziLearningApp {
+    constructor() {
+        this.currentMode = 'menu';
+        this.currentCharacters = [];
+        this.currentIndex = 0;
+        this.testQuestions = [];
+        this.testCurrentIndex = 0;
+        this.testScore = 0;
+
+        this.init();
+    }
+
+    // 初始化应用
+    init() {
+        this.updateDashboard();
+        this.bindEvents();
+        console.log('汉字学习系统已启动');
+    }
+
+    // 绑定事件
+    bindEvents() {
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (this.currentMode === 'learning') {
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        this.previousCharacter();
+                        break;
+                    case 'ArrowRight':
+                        this.nextCharacter();
+                        break;
+                    case '1':
+                        this.markDifficulty('easy');
+                        break;
+                    case '2':
+                        this.markDifficulty('medium');
+                        break;
+                    case '3':
+                        this.markDifficulty('hard');
+                        break;
+                }
+            }
+        });
+    }
+
+    // 更新仪表板
+    updateDashboard() {
+        const stats = memorySystem.getStudyStatistics();
+        const progress = memorySystem.getStudyProgress();
+
+        document.getElementById('todayLearned').textContent = stats.todayLearned;
+        document.getElementById('totalProgress').textContent = stats.totalLearned;
+        document.getElementById('reviewTasks').textContent = stats.todayReviews;
+        document.getElementById('masteryRate').textContent = stats.averageAccuracy + '%';
+
+        // 更新总目标显示
+        const totalTargetElement = document.getElementById('totalTarget');
+        if (totalTargetElement) {
+            totalTargetElement.textContent = `/ ${stats.totalTarget}`;
+        }
+    }
+
+    // 开始学习
+    startLearning(mode) {
+        this.currentMode = mode;
+
+        switch (mode) {
+            case 'new':
+                this.startNewLearning();
+                break;
+            case 'review':
+                this.startReview();
+                break;
+            case 'grade':
+                this.showGradeSelection();
+                break;
+            case 'difficulty':
+                this.showDifficultySelection();
+                break;
+            case 'test':
+                this.startTest();
+                break;
+        }
+    }
+
+    // 开始学习新汉字
+    startNewLearning() {
+        this.currentCharacters = memorySystem.getNewCharactersToLearn(10);
+
+        if (this.currentCharacters.length === 0) {
+            alert('恭喜！您已经学完了所有汉字！');
+            return;
+        }
+
+        this.currentIndex = 0;
+        this.showLearningInterface();
+        this.displayCurrentCharacter();
+    }
+
+    // 开始复习
+    startReview() {
+        const reviewCharacters = memorySystem.getTodayReviewCharacters();
+
+        if (reviewCharacters.length === 0) {
+            alert('今天没有需要复习的汉字！');
+            return;
+        }
+
+        // 获取完整的汉字信息
+        this.currentCharacters = reviewCharacters.map(review => {
+            const charInfo = getCharacterInfo(review.character);
+            return { ...charInfo, ...review };
+        });
+
+        this.currentIndex = 0;
+        this.showLearningInterface();
+        this.displayCurrentCharacter();
+    }
+
+    // 显示年级选择界面
+    showGradeSelection() {
+        document.querySelector('.learning-modes').style.display = 'none';
+        document.querySelector('.dashboard').style.display = 'none';
+        document.getElementById('gradeSelection').style.display = 'block';
+
+        // 更新年级统计
+        if (typeof HANZI_STATS !== 'undefined') {
+            document.getElementById('grade1Count').textContent = `${HANZI_STATS.byGrade.grade1} 个汉字`;
+            document.getElementById('grade2Count').textContent = `${HANZI_STATS.byGrade.grade2} 个汉字`;
+            document.getElementById('grade3Count').textContent = `${HANZI_STATS.byGrade.grade3} 个汉字`;
+            document.getElementById('grade4Count').textContent = `${HANZI_STATS.byGrade.grade4} 个汉字`;
+            document.getElementById('grade5Count').textContent = `${HANZI_STATS.byGrade.grade5} 个汉字`;
+            document.getElementById('grade6Count').textContent = `${HANZI_STATS.byGrade.grade6} 个汉字`;
+        }
+    }
+
+    // 显示难度选择界面
+    showDifficultySelection() {
+        document.querySelector('.learning-modes').style.display = 'none';
+        document.querySelector('.dashboard').style.display = 'none';
+        document.getElementById('difficultySelection').style.display = 'block';
+
+        // 更新难度统计
+        if (typeof HANZI_STATS !== 'undefined') {
+            document.getElementById('difficulty1Count').textContent = `${HANZI_STATS.byDifficulty.easy} 个汉字`;
+            document.getElementById('difficulty2Count').textContent = `${HANZI_STATS.byDifficulty.medium} 个汉字`;
+            document.getElementById('difficulty3Count').textContent = `${HANZI_STATS.byDifficulty.hard} 个汉字`;
+            document.getElementById('difficulty4Count').textContent = `${HANZI_STATS.byDifficulty.veryHard} 个汉字`;
+        }
+    }
+
+    // 开始年级学习
+    startGradeLearning(grade) {
+        const gradeCharacters = getCharactersByGrade(grade);
+        const reviewData = memorySystem.getReviewData();
+        const learnedCharacters = new Set(Object.keys(reviewData));
+
+        // 过滤出未学习的汉字
+        const newCharacters = gradeCharacters.filter(char =>
+            !learnedCharacters.has(char.character)
+        );
+
+        if (newCharacters.length === 0) {
+            alert(`恭喜！您已经学完了${grade}年级的所有汉字！`);
+            return;
+        }
+
+        this.currentCharacters = newCharacters.slice(0, 20); // 每次最多20个
+        this.currentIndex = 0;
+        this.currentMode = 'grade';
+        this.showLearningInterface();
+        this.displayCurrentCharacter();
+    }
+
+    // 开始难度学习
+    startDifficultyLearning(difficulty) {
+        const difficultyCharacters = getCharactersByDifficulty(difficulty);
+        const reviewData = memorySystem.getReviewData();
+        const learnedCharacters = new Set(Object.keys(reviewData));
+
+        // 过滤出未学习的汉字
+        const newCharacters = difficultyCharacters.filter(char =>
+            !learnedCharacters.has(char.character)
+        );
+
+        if (newCharacters.length === 0) {
+            const difficultyNames = { 1: "简单", 2: "中等", 3: "困难", 4: "极难" };
+            alert(`恭喜！您已经学完了所有${difficultyNames[difficulty]}难度的汉字！`);
+            return;
+        }
+
+        this.currentCharacters = newCharacters.slice(0, 20); // 每次最多20个
+        this.currentIndex = 0;
+        this.currentMode = 'difficulty';
+        this.showLearningInterface();
+        this.displayCurrentCharacter();
+    }
+
+    // 开始测试
+    startTest() {
+        const allLearned = Object.keys(memorySystem.getReviewData());
+
+        if (allLearned.length < 5) {
+            alert('请先学习至少5个汉字再进行测试！');
+            return;
+        }
+
+        // 随机选择10个已学汉字进行测试
+        const shuffled = [...allLearned].sort(() => 0.5 - Math.random());
+        const testCharacters = shuffled.slice(0, Math.min(10, allLearned.length));
+
+        this.testQuestions = testCharacters.map(char => {
+            const charInfo = getCharacterInfo(char);
+            return this.generateTestQuestion(charInfo);
+        });
+
+        this.testCurrentIndex = 0;
+        this.testScore = 0;
+        this.showTestInterface();
+        this.displayCurrentTestQuestion();
+    }
+
+    // 生成测试题目
+    generateTestQuestion(character) {
+        const questionTypes = ['pinyin', 'meaning', 'character'];
+        const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+
+        let question, correctAnswer, options;
+
+        switch (questionType) {
+            case 'pinyin':
+                question = `这个字的拼音是什么？`;
+                correctAnswer = character.pinyin[0];
+                options = this.generatePinyinOptions(correctAnswer);
+                break;
+            case 'meaning':
+                question = `这个字的意思是什么？`;
+                correctAnswer = character.definition;
+                options = this.generateMeaningOptions(correctAnswer);
+                break;
+            case 'character':
+                question = `哪个是"${character.pinyin[0]}"的正确写法？`;
+                correctAnswer = character.character;
+                options = this.generateCharacterOptions(correctAnswer);
+                break;
+        }
+
+        return {
+            character: character.character,
+            question: question,
+            correctAnswer: correctAnswer,
+            options: this.shuffleArray(options),
+            type: questionType
+        };
+    }
+
+    // 生成拼音选项
+    generatePinyinOptions(correct) {
+        const allPinyins = HANZI_DATABASE.map(char => char.pinyin[0]).filter(p => p !== correct);
+        const shuffled = [...allPinyins].sort(() => 0.5 - Math.random());
+        const options = [correct, ...shuffled.slice(0, 3)];
+        return options;
+    }
+
+    // 生成意思选项
+    generateMeaningOptions(correct) {
+        const allMeanings = HANZI_DATABASE.map(char => char.definition).filter(d => d !== correct);
+        const shuffled = [...allMeanings].sort(() => 0.5 - Math.random());
+        const options = [correct, ...shuffled.slice(0, 3)];
+        return options;
+    }
+
+    // 生成汉字选项
+    generateCharacterOptions(correct) {
+        const allCharacters = HANZI_DATABASE.map(char => char.character).filter(c => c !== correct);
+        const shuffled = [...allCharacters].sort(() => 0.5 - Math.random());
+        const options = [correct, ...shuffled.slice(0, 3)];
+        return options;
+    }
+
+    // 打乱数组
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    // 显示学习界面
+    showLearningInterface() {
+        document.querySelector('.learning-modes').style.display = 'none';
+        document.querySelector('.dashboard').style.display = 'none';
+        document.getElementById('learningInterface').style.display = 'block';
+        document.getElementById('testInterface').style.display = 'none';
+        document.getElementById('gradeSelection').style.display = 'none';
+        document.getElementById('difficultySelection').style.display = 'none';
+    }
+
+    // 显示测试界面
+    showTestInterface() {
+        document.querySelector('.learning-modes').style.display = 'none';
+        document.querySelector('.dashboard').style.display = 'none';
+        document.getElementById('learningInterface').style.display = 'none';
+        document.getElementById('testInterface').style.display = 'block';
+        document.getElementById('gradeSelection').style.display = 'none';
+        document.getElementById('difficultySelection').style.display = 'none';
+    }
+
+    // 显示当前汉字
+    displayCurrentCharacter() {
+        if (this.currentIndex >= this.currentCharacters.length) {
+            this.completeLearningSession();
+            return;
+        }
+
+        const character = this.currentCharacters[this.currentIndex];
+
+        document.getElementById('characterMain').textContent = character.character;
+        document.getElementById('characterPinyin').textContent = character.pinyin.join(', ');
+        document.getElementById('characterDefinition').textContent = character.definition;
+
+        // 更新进度
+        const progress = ((this.currentIndex + 1) / this.currentCharacters.length) * 100;
+        document.getElementById('progressFill').style.width = progress + '%';
+        document.getElementById('progressText').textContent = `${this.currentIndex + 1}/${this.currentCharacters.length}`;
+
+        // 绘制笔画
+        this.drawStrokes(character);
+    }
+
+    // 显示当前测试题目
+    displayCurrentTestQuestion() {
+        if (this.testCurrentIndex >= this.testQuestions.length) {
+            this.completeTestSession();
+            return;
+        }
+
+        const question = this.testQuestions[this.testCurrentIndex];
+
+        document.getElementById('questionText').textContent = question.question;
+        document.getElementById('testCharacter').textContent = question.type === 'character' ? '?' : question.character;
+        document.getElementById('testProgress').textContent = `${this.testCurrentIndex + 1}/${this.testQuestions.length}`;
+
+        // 生成选项按钮
+        const optionsContainer = document.getElementById('testOptions');
+        optionsContainer.innerHTML = '';
+
+        question.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.className = 'option-btn';
+            button.textContent = option;
+            button.onclick = () => this.selectTestOption(option, button);
+            optionsContainer.appendChild(button);
+        });
+
+        // 隐藏结果
+        document.getElementById('testResult').style.display = 'none';
+    }
+
+    // 选择测试选项
+    selectTestOption(selectedOption, buttonElement) {
+        const question = this.testQuestions[this.testCurrentIndex];
+        const isCorrect = selectedOption === question.correctAnswer;
+
+        // 禁用所有选项按钮
+        const allButtons = document.querySelectorAll('.option-btn');
+        allButtons.forEach(btn => {
+            btn.disabled = true;
+            if (btn.textContent === question.correctAnswer) {
+                btn.classList.add('correct');
+            } else if (btn === buttonElement && !isCorrect) {
+                btn.classList.add('incorrect');
+            }
+        });
+
+        // 显示结果
+        const resultDiv = document.getElementById('testResult');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultText = document.getElementById('resultText');
+
+        if (isCorrect) {
+            this.testScore++;
+            resultIcon.textContent = '✅';
+            resultText.textContent = '回答正确！';
+            resultDiv.style.background = '#e8f5e8';
+        } else {
+            resultIcon.textContent = '❌';
+            resultText.textContent = `回答错误！正确答案是：${question.correctAnswer}`;
+            resultDiv.style.background = '#ffebee';
+        }
+
+        resultDiv.style.display = 'block';
+
+        // 记录复习结果
+        memorySystem.markReviewCompleted(question.character, isCorrect, isCorrect ? 'easy' : 'hard');
+    }
+
+    // 下一个测试题目
+    nextTestQuestion() {
+        this.testCurrentIndex++;
+        this.displayCurrentTestQuestion();
+    }
+
+    // 绘制笔画（简化版本）
+    drawStrokes(character) {
+        const canvas = document.getElementById('strokeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 清空画布
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 设置样式
+        ctx.font = '200px STKaiti, KaiTi, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#333';
+
+        // 绘制汉字
+        ctx.fillText(character.character, canvas.width / 2, canvas.height / 2);
+    }
+
+    // 播放笔画动画
+    animateStrokes() {
+        // 这里可以实现更复杂的笔画动画
+        // 目前只是简单的重绘
+        const character = this.currentCharacters[this.currentIndex];
+        this.drawStrokes(character);
+
+        // 添加简单的动画效果
+        const canvas = document.getElementById('strokeCanvas');
+        canvas.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            canvas.style.transform = 'scale(1)';
+        }, 300);
+    }
+
+    // 标记难度
+    markDifficulty(difficulty) {
+        const character = this.currentCharacters[this.currentIndex];
+
+        // 记录学习结果
+        if (this.currentMode === 'new') {
+            memorySystem.markCharacterLearned(character.character, difficulty);
+        } else {
+            memorySystem.markReviewCompleted(character.character, true, difficulty);
+        }
+
+        // 视觉反馈
+        const buttons = document.querySelectorAll('.difficulty-btn');
+        buttons.forEach(btn => btn.style.transform = 'scale(1)');
+
+        const selectedBtn = document.querySelector(`.difficulty-btn.${difficulty}`);
+        selectedBtn.style.transform = 'scale(1.1)';
+
+        setTimeout(() => {
+            selectedBtn.style.transform = 'scale(1)';
+            this.nextCharacter();
+        }, 500);
+    }
+
+    // 上一个汉字
+    previousCharacter() {
+        if (this.currentIndex > 0) {
+            this.currentIndex--;
+            this.displayCurrentCharacter();
+        }
+    }
+
+    // 下一个汉字
+    nextCharacter() {
+        this.currentIndex++;
+        this.displayCurrentCharacter();
+    }
+
+    // 完成学习会话
+    completeLearningSession() {
+        const message = this.currentMode === 'new' ?
+            `恭喜！您已经学完了 ${this.currentCharacters.length} 个新汉字！` :
+            `恭喜！您已经复习完了 ${this.currentCharacters.length} 个汉字！`;
+
+        alert(message);
+        this.backToMenu();
+    }
+
+    // 完成测试会话
+    completeTestSession() {
+        const accuracy = Math.round((this.testScore / this.testQuestions.length) * 100);
+        const message = `测试完成！\n正确率：${accuracy}%\n得分：${this.testScore}/${this.testQuestions.length}`;
+
+        alert(message);
+        this.backToMenu();
+    }
+
+    // 返回主菜单
+    backToMenu() {
+        this.currentMode = 'menu';
+        document.querySelector('.learning-modes').style.display = 'block';
+        document.querySelector('.dashboard').style.display = 'block';
+        document.getElementById('learningInterface').style.display = 'none';
+        document.getElementById('testInterface').style.display = 'none';
+        document.getElementById('gradeSelection').style.display = 'none';
+        document.getElementById('difficultySelection').style.display = 'none';
+
+        // 更新仪表板
+        this.updateDashboard();
+    }
+
+    // 显示进度报告
+    showProgress() {
+        const stats = memorySystem.getStudyStatistics();
+        const progress = memorySystem.getStudyProgress();
+
+        let gradeReport = '';
+        if (typeof HANZI_STATS !== 'undefined') {
+            gradeReport = `
+按年级统计：
+一年级：${HANZI_STATS.byGrade.grade1} 个
+二年级：${HANZI_STATS.byGrade.grade2} 个
+三年级：${HANZI_STATS.byGrade.grade3} 个
+四年级：${HANZI_STATS.byGrade.grade4} 个
+五年级：${HANZI_STATS.byGrade.grade5} 个
+六年级：${HANZI_STATS.byGrade.grade6} 个
+
+按难度统计：
+简单：${HANZI_STATS.byDifficulty.easy} 个
+中等：${HANZI_STATS.byDifficulty.medium} 个
+困难：${HANZI_STATS.byDifficulty.hard} 个
+极难：${HANZI_STATS.byDifficulty.veryHard} 个
+            `;
+        }
+
+        const report = `
+学习进度报告
+=================
+总学习汉字：${stats.totalLearned} / ${stats.totalTarget}
+完成进度：${progress.percentage}%
+今日学习：${stats.todayLearned} 个
+今日复习：${stats.todayReviews} 个
+平均准确率：${stats.averageAccuracy}%
+剩余汉字：${progress.remaining} 个
+${gradeReport}
+        `;
+
+        alert(report);
+    }
+}
+
+// 全局函数（供HTML调用）
+let app;
+
+// 页面加载完成后初始化应用
+document.addEventListener('DOMContentLoaded', function () {
+    app = new HanziLearningApp();
+});
+
+// 供HTML调用的全局函数
+function startLearning(mode) {
+    app.startLearning(mode);
+}
+
+function backToMenu() {
+    app.backToMenu();
+}
+
+function animateStrokes() {
+    app.animateStrokes();
+}
+
+function markDifficulty(difficulty) {
+    app.markDifficulty(difficulty);
+}
+
+function previousCharacter() {
+    app.previousCharacter();
+}
+
+function nextCharacter() {
+    app.nextCharacter();
+}
+
+function nextTestQuestion() {
+    app.nextTestQuestion();
+}
+
+function showProgress() {
+    app.showProgress();
+}
+
+function startGradeLearning(grade) {
+    app.startGradeLearning(grade);
+}
+
+function startDifficultyLearning(difficulty) {
+    app.startDifficultyLearning(difficulty);
+}

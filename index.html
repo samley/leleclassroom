@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉字学习系统 - 小学生中文学习平台</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- HanziWriter.js - 专业汉字笔顺库 -->
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5.0/dist/hanzi-writer.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎓 汉字学习系统</h1>
+            <p>基于艾宾浩斯记忆曲线的智能学习平台</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 学习仪表板 -->
+            <section class="dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>今日学习</h3>
+                        <div class="stat-number" id="todayLearned">0</div>
+                        <p>个汉字</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>总进度</h3>
+                        <div class="stat-number" id="totalProgress">0</div>
+                        <p id="totalTarget">/ 2960</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>复习任务</h3>
+                        <div class="stat-number" id="reviewTasks">0</div>
+                        <p>个汉字</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>掌握程度</h3>
+                        <div class="stat-number" id="masteryRate">0%</div>
+                        <p>熟练度</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 学习模式选择 -->
+            <section class="learning-modes">
+                <h2>选择学习模式</h2>
+                <div class="mode-grid">
+                    <button class="mode-btn" onclick="startLearning('new')">
+                        <div class="mode-icon">📚</div>
+                        <h3>学习新字</h3>
+                        <p>学习新的汉字</p>
+                    </button>
+                    <button class="mode-btn" onclick="startLearning('review')">
+                        <div class="mode-icon">🔄</div>
+                        <h3>复习汉字</h3>
+                        <p>复习已学汉字</p>
+                    </button>
+                    <button class="mode-btn" onclick="startLearning('grade')">
+                        <div class="mode-icon">🎓</div>
+                        <h3>按年级学习</h3>
+                        <p>选择年级进行学习</p>
+                    </button>
+                    <button class="mode-btn" onclick="startLearning('difficulty')">
+                        <div class="mode-icon">⭐</div>
+                        <h3>按难度学习</h3>
+                        <p>选择难度进行学习</p>
+                    </button>
+                    <button class="mode-btn" onclick="startLearning('test')">
+                        <div class="mode-icon">✏️</div>
+                        <h3>测试模式</h3>
+                        <p>检验学习成果</p>
+                    </button>
+                    <button class="mode-btn" onclick="showProgress()">
+                        <div class="mode-icon">📊</div>
+                        <h3>学习报告</h3>
+                        <p>查看学习统计</p>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 年级选择界面 -->
+            <section class="grade-selection" id="gradeSelection" style="display: none;">
+                <div class="learning-card">
+                    <div class="card-header">
+                        <button class="back-btn" onclick="backToMenu()">← 返回</button>
+                        <h3>选择年级</h3>
+                        <div></div>
+                    </div>
+
+                    <div class="grade-grid">
+                        <button class="grade-btn" onclick="startGradeLearning(1)">
+                            <div class="grade-number">1</div>
+                            <div class="grade-info">
+                                <h4>一年级</h4>
+                                <p id="grade1Count">0个汉字</p>
+                            </div>
+                        </button>
+                        <button class="grade-btn" onclick="startGradeLearning(2)">
+                            <div class="grade-number">2</div>
+                            <div class="grade-info">
+                                <h4>二年级</h4>
+                                <p id="grade2Count">0个汉字</p>
+                            </div>
+                        </button>
+                        <button class="grade-btn" onclick="startGradeLearning(3)">
+                            <div class="grade-number">3</div>
+                            <div class="grade-info">
+                                <h4>三年级</h4>
+                                <p id="grade3Count">0个汉字</p>
+                            </div>
+                        </button>
+                        <button class="grade-btn" onclick="startGradeLearning(4)">
+                            <div class="grade-number">4</div>
+                            <div class="grade-info">
+                                <h4>四年级</h4>
+                                <p id="grade4Count">0个汉字</p>
+                            </div>
+                        </button>
+                        <button class="grade-btn" onclick="startGradeLearning(5)">
+                            <div class="grade-number">5</div>
+                            <div class="grade-info">
+                                <h4>五年级</h4>
+                                <p id="grade5Count">0个汉字</p>
+                            </div>
+                        </button>
+                        <button class="grade-btn" onclick="startGradeLearning(6)">
+                            <div class="grade-number">6</div>
+                            <div class="grade-info">
+                                <h4>六年级</h4>
+                                <p id="grade6Count">0个汉字</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 难度选择界面 -->
+            <section class="difficulty-selection" id="difficultySelection" style="display: none;">
+                <div class="learning-card">
+                    <div class="card-header">
+                        <button class="back-btn" onclick="backToMenu()">← 返回</button>
+                        <h3>选择难度</h3>
+                        <div></div>
+                    </div>
+
+                    <div class="difficulty-grid">
+                        <button class="difficulty-select-btn easy" onclick="startDifficultyLearning(1)">
+                            <div class="difficulty-icon">😊</div>
+                            <div class="difficulty-info">
+                                <h4>简单</h4>
+                                <p id="difficulty1Count">0个汉字</p>
+                                <small>笔画简单，常用字</small>
+                            </div>
+                        </button>
+                        <button class="difficulty-select-btn medium" onclick="startDifficultyLearning(2)">
+                            <div class="difficulty-icon">🤔</div>
+                            <div class="difficulty-info">
+                                <h4>中等</h4>
+                                <p id="difficulty2Count">0个汉字</p>
+                                <small>笔画适中，较常用</small>
+                            </div>
+                        </button>
+                        <button class="difficulty-select-btn hard" onclick="startDifficultyLearning(3)">
+                            <div class="difficulty-icon">😰</div>
+                            <div class="difficulty-info">
+                                <h4>困难</h4>
+                                <p id="difficulty3Count">0个汉字</p>
+                                <small>笔画复杂，生僻字</small>
+                            </div>
+                        </button>
+                        <button class="difficulty-select-btn very-hard" onclick="startDifficultyLearning(4)">
+                            <div class="difficulty-icon">🔥</div>
+                            <div class="difficulty-info">
+                                <h4>极难</h4>
+                                <p id="difficulty4Count">0个汉字</p>
+                                <small>笔画很多，罕见字</small>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 学习界面 -->
+            <section class="learning-interface" id="learningInterface" style="display: none;">
+                <div class="learning-card">
+                    <div class="card-header">
+                        <button class="back-btn" onclick="backToMenu()">← 返回</button>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <span class="progress-text" id="progressText">1/10</span>
+                    </div>
+
+                    <div class="character-display">
+                        <div class="character-main" id="characterMain">汉</div>
+                        <div class="character-info">
+                            <div class="pinyin" id="characterPinyin">hàn</div>
+                            <div class="definition" id="characterDefinition">汉族；男子</div>
+                        </div>
+                    </div>
+
+                    <div class="stroke-animation" id="strokeAnimation">
+                        <div id="hanzi-writer-container" class="hanzi-writer-container"></div>
+                        <div class="stroke-controls">
+                            <button class="animate-btn" id="animateBtn" onclick="animateStrokes()">播放笔顺</button>
+                            <button class="animate-btn secondary" id="quizBtn" onclick="startStrokeQuiz()" style="display: none;">笔顺练习</button>
+                        </div>
+                        <div class="stroke-hint" id="strokeHint">点击按钮观看笔顺动画</div>
+                    </div>
+
+                    <div class="learning-actions">
+                        <button class="action-btn difficulty-btn easy" onclick="markDifficulty('easy')">
+                            😊 简单
+                        </button>
+                        <button class="action-btn difficulty-btn medium" onclick="markDifficulty('medium')">
+                            🤔 一般
+                        </button>
+                        <button class="action-btn difficulty-btn hard" onclick="markDifficulty('hard')">
+                            😰 困难
+                        </button>
+                    </div>
+
+                    <div class="navigation-buttons">
+                        <button class="nav-btn" onclick="previousCharacter()">上一个</button>
+                        <button class="nav-btn primary" onclick="nextCharacter()">下一个</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 测试界面 -->
+            <section class="test-interface" id="testInterface" style="display: none;">
+                <div class="test-card">
+                    <div class="test-header">
+                        <button class="back-btn" onclick="backToMenu()">← 返回</button>
+                        <h3>汉字测试</h3>
+                        <div class="test-progress" id="testProgress">1/10</div>
+                    </div>
+
+                    <div class="test-question">
+                        <div class="question-text" id="questionText">这个字的拼音是什么？</div>
+                        <div class="test-character" id="testCharacter">汉</div>
+                    </div>
+
+                    <div class="test-options" id="testOptions">
+                        <!-- 选项将通过JavaScript动态生成 -->
+                    </div>
+
+                    <div class="test-result" id="testResult" style="display: none;">
+                        <div class="result-icon" id="resultIcon">✅</div>
+                        <div class="result-text" id="resultText">回答正确！</div>
+                        <button class="continue-btn" onclick="nextTestQuestion()">继续</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/hanzi-data-complete.js"></script>
+    <script src="js/memory-algorithm.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
